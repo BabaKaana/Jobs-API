@@ -1,10 +1,22 @@
-const { CustomAPIError } = require('../errors')
 const { StatusCodes } = require('http-status-codes')
+
 const errorHandlerMiddleware = (err, req, res, next) => {
-  if (err instanceof CustomAPIError) {
-    return res.status(err.statusCode).json({ msg: err.message })
+  let customError = {
+    statusCode: err.statusCode || StatusCodes.INTERNAL_SERVER_ERROR,
+    msg: err.message || 'Something went wrong, try again later.'
   }
-  return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ err })
+
+  if (err.code && err.code===11000){
+    customError.statusCode = 400,
+    customError.msg = `Duplicate value entered for ${Object.values(err.keyValue)}, Choose another value.`
+  }
+
+  if (err.name === "CastError"){
+    customError.statusCode = 404;
+    customError.msg = `No item found with id ${err.value}`;
+  }
+
+  return res.status(customError.statusCode).json({msg: customError.msg});
 }
 
 module.exports = errorHandlerMiddleware
